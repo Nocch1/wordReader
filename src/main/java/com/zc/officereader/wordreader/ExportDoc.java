@@ -24,8 +24,9 @@ public class ExportDoc {
     public static void main(String[] args) {
         List<OcrFieldKeyword> keywordList = new ArrayList<>();
         OcrFieldKeyword tem = new OcrFieldKeyword();
-        tem.setFieldId(1).setKwValue('1221');
-        keywordList.add;
+//        tem.setFieldId(1).setKwValue('1221');
+//        keywordList.add;
+        // TODO 静态存储正则规则
 
 
         ExportDoc test = new ExportDoc();
