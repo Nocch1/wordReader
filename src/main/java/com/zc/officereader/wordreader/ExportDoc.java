@@ -44,6 +44,7 @@ public class ExportDoc {
      */
     public void testWord(String filePath) {
         try {
+            List<CellInfo> cellInfoList = new ArrayList<>();
             FileInputStream in = new FileInputStream(filePath);//载入文档
             // 处理docx格式 即office2007以后版本
             if (filePath.toLowerCase().endsWith("docx")) {
@@ -84,59 +85,70 @@ public class ExportDoc {
             } else {
                 // 处理doc格式 即office2003版本
                 POIFSFileSystem pfs = new POIFSFileSystem(in);
-                HWPFDocument doc = new HWPFDocument(pfs);
-                Range range = doc.getRange();//得到文档的读取范围
-                TableIterator tableIterator = new TableIterator(range);
-
-                String[][] tableCells = new String[20][];
+                HWPFDocument hwpf = new HWPFDocument(pfs);
+                Range range = hwpf.getRange();//得到文档的读取范围
+                TableIterator it = new TableIterator(range);
                 // 迭代文档中的表格
-                while (tableIterator.hasNext()) {
-                    Table tb = (Table) tableIterator.next();
+                // 如果有多个表格只读取需要的一个 set是设置需要读取的第几个表格，total是文件中表格的总数
+                int set = 1, total = 4;
+                int num = set;
+                for (int i = 0; i < set - 1; i++) {
+                    it.hasNext();
+                    it.next();
+                }
+                while (it.hasNext()) {
+                    Table tb = (Table) it.next();
+                    System.out.println("这是第" + num + "个表的数据");
+                    //迭代行，默认从0开始,可以依据需要设置i的值,改变起始行数，也可设置读取到那行，只需修改循环的判断条件即可
+                    CellInfo cellInfo = new CellInfo();
+
                     for (int i = 0; i < tb.numRows(); i++) {
                         TableRow tr = tb.getRow(i);
                         //迭代列，默认从0开始
                         for (int j = 0; j < tr.numCells(); j++) {
                             TableCell td = tr.getCell(j);//取得单元格
-                            String tem = "";
                             //取得单元格的内容
+                            String content = "";
                             for (int k = 0; k < td.numParagraphs(); k++) {
                                 Paragraph para = td.getParagraph(k);
                                 String s = para.text();
                                 //去除后面的特殊符号
-                                if (s != null && !"".equals(s)) {
+                                if (null != s && !"".equals(s)) {
                                     s = s.substring(0, s.length() - 1);
                                 }
-                                assert s != null;
-                                tem = tem.concat(s);
+                                content += s;
                                 System.out.print(s + "\t");
                             }
-                            tableCells[i][j] = tem.toLowerCase();
+
+                            cellInfo.setYPosition(i);
+                            cellInfo.setXPosition(j);
+                            cellInfo.setContent(content);
+                            cellInfo.setIsTitle(tableHandle(content));
+                            cellInfoList.add(cellInfo);
                         }
                         System.out.println();
                     }
+                    // 过滤多余的表格
+                    while (num < total) {
+                        it.hasNext();
+                        it.next();
+                        num += 1;
+                    }
+
+                    // 要做个判断 右侧还是下面 然后组建键值对
                 }
-                tableHandle(tableCells);
             }
         } catch (Exception e) {
             e.printStackTrace();
         }
     }
 
-    public void tableHandle(String[][] arr) {
-        Object a;
-        for (int i = 0; i < arr.length; i++) {
-            for (int j = 0; j < arr[i].length; j++) {
+    public Boolean tableHandle(String text) {
+        String txt = text;
+        String re1 = "(shipper)";    // Word 1
 
-                String txt = arr[i][j];
-                String re1 = "(shipper)";    // Word 1
-
-                Pattern p = Pattern.compile(re1, Pattern.CASE_INSENSITIVE | Pattern.DOTALL);
-                Matcher m = p.matcher(txt);
-                if (m.find()) {
-                    String word1 = m.group(1);
-
-                }
-            }
-        }
+        Pattern p = Pattern.compile(re1, Pattern.CASE_INSENSITIVE | Pattern.DOTALL);
+        Matcher m = p.matcher(txt);
+        return m.find();
     }
 }
